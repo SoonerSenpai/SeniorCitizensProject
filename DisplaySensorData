@@ -1,0 +1,95 @@
+// Working code that will display real time sensor data on both the Bangle.js 2 Watch Face, as well as within the Console.
+// Variables can be changed depending on the data needing to be captured.
+// Can also adjust the interval at which sensor data is updated and displayed.
+
+var accelX, accelY, accelZ; // Variables to store accelerometer data
+var gpsLat, gpsLon, gpsAlt; // Variables to store GPS data
+var heartRate; // Variable to store heart rate data
+var batteryLevel; // Variable to store battery level data
+
+// Define a function to display the sensor data on the Bangle.js 2 watch screen
+function displaySensorData() {
+  g.clear();
+  g.setFont("6x8", 1);
+  g.drawString("Senior Citizens Vitals App ", 10, 10);
+  g.drawString("Acceleration Readings: ", 10, 30);
+  g.drawString("X: " + accelX.toFixed(3), 10, 40);
+  g.drawString("Y: " + accelY.toFixed(3), 10, 50);
+  g.drawString("Z: " + accelZ.toFixed(3), 10, 60);
+  g.drawString("GPS Readings: ", 10, 80);
+  g.drawString("Latitude: ", 10, 90);
+  g.drawString("Longitude: ", 10, 100);
+  g.drawString("Heart Rate: " + heartRate + " BPM", 10, 120);
+  g.drawString("Battery Level: " + batteryLevel + "%", 10, 140);
+  g.flip();
+}
+
+Bangle.setHRMPower(1); // Turn on the heart rate monitor
+Bangle.setGPSPower(1); // Turn on the GPS
+Bangle.accelWr(0x27); // Turn on the accelerometer
+
+
+// Function to read accelerometer data
+function readAccelerometer() {
+  var accelData = Bangle.getAccel(); // Read accelerometer data
+  accelX = accelData.x; // Store X-axis accelerometer data
+  accelY = accelData.y; // Store Y-axis accelerometer data
+  accelZ = accelData.z; // Store Z-axis accelerometer data
+}
+
+// Function to read GPS data
+function readGPS() {
+  var gpsFix = Bangle.getGPSFix(); // Read GPS fix data
+  if (gpsFix.fix) {
+    gpsLat = gpsFix.lat; // Store latitude data
+    gpsLon = gpsFix.lon; // Store longitude data
+    gpsAlt = gpsFix.alt; // Store altitude data
+    
+  if ((gpsLat > 33) && (gpsLon < -97)) {
+    return Bangle.buzz(1000);
+}
+  }
+
+}
+
+// Function to read heart rate data
+function readHeartRate(hrm) {
+  if (hrm && hrm.bpm) {
+    heartRate = hrm.bpm; // Read heart rate data
+  }
+}
+
+// Function to read battery level data
+function readBatteryLevel() {
+  batteryLevel = E.getBattery(); // Read battery level data
+}
+
+// Call each function in a loop to update the variables with fresh data
+setInterval(readAccelerometer, 1000); // Update accelerometer data every second
+setInterval(readGPS, 1000); // Update GPS data every second
+setInterval(readHeartRate, 1000); // Update heart rate data every second
+setInterval(readBatteryLevel, 5000); // Update battery level data every 5 seconds
+
+// Display the sensor data every 5 seconds
+setInterval(function() {
+  
+Bangle.on('HRM', readHeartRate);
+Bangle.on('GPS', readGPS);  
+  
+// Call the function to display sensor data on the Bangle.js 2 watch screen  
+displaySensorData(); 
+  
+  // Create a JSON object with the sensor data
+  var sensorData = {
+    "X": accelX.toFixed(3),
+    "Y": accelY.toFixed(3),
+    "Z": accelZ.toFixed(3),
+    "Lat": gpsLat,
+    "Lon": gpsLon,
+    "HR": heartRate,
+    "Batt": batteryLevel
+  };
+  // Convert the JSON object to a string
+  var jsonString = JSON.stringify(sensorData);
+  console.log(jsonString); // Display the JSON string in the console
+}, 5000); // Display sensor data every 5 seconds
